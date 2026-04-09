@@ -180,10 +180,25 @@
   const hint = document.getElementById('hint');
   let isShaking = false;
   let lastIndex = -1;
+  let resetTimer = null;
+
+  function resetToIdle() {
+    answer.className = 'answer hidden';
+    setTimeout(() => {
+      eight.className = 'eight';
+      hint.style.display = '';
+    }, 400);
+  }
+
+  function startResetTimer() {
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(resetToIdle, 5000);
+  }
 
   function shake() {
     if (isShaking) return;
     isShaking = true;
+    clearTimeout(resetTimer);
 
     hint.style.display = 'none';
     answer.className = 'answer hidden';
@@ -202,6 +217,7 @@
 
       answer.textContent = responses[idx];
       answer.className = 'answer visible';
+      startResetTimer();
     }, 500);
 
     setTimeout(() => {
