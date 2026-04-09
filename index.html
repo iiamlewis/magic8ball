@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magic 8 Ball</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .ball {
+    position: relative;
+    width: min(70vw, 70vh);
+    height: min(70vw, 70vh);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #3a3a3a, #1a1a1a 40%, #050505 80%);
+    box-shadow:
+      0 0 40px rgba(255, 215, 0, 0.15),
+      0 0 80px rgba(255, 215, 0, 0.05),
+      inset 0 -20px 40px rgba(0, 0, 0, 0.6),
+      inset 0 10px 30px rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.3s;
+  }
+
+  .ball:hover {
+    box-shadow:
+      0 0 50px rgba(255, 215, 0, 0.25),
+      0 0 100px rgba(255, 215, 0, 0.1),
+      inset 0 -20px 40px rgba(0, 0, 0, 0.6),
+      inset 0 10px 30px rgba(255, 255, 255, 0.05);
+  }
+
+  .window {
+    width: 45%;
+    height: 45%;
+    background: radial-gradient(circle, #0d0d2b, #050510);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 2px solid rgba(255, 215, 0, 0.15);
+  }
+
+  .triangle {
+    width: 0;
+    height: 0;
+    border-left: min(6vw, 6vh) solid transparent;
+    border-right: min(6vw, 6vh) solid transparent;
+    border-bottom: min(10vw, 10vh) solid rgba(255, 215, 0, 0.12);
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .answer {
+    position: absolute;
+    color: #FFD700;
+    font-size: clamp(0.6rem, 2.2vw, 1rem);
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.3;
+    padding: 10%;
+    width: 100%;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    opacity: 0;
+    transition: opacity 0.4s ease-in;
+  }
+
+  .answer.visible {
+    opacity: 1;
+  }
+
+  .answer.hidden {
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+  }
+
+  .hint {
+    position: fixed;
+    bottom: 12%;
+    color: rgba(255, 215, 0, 0.35);
+    font-size: clamp(0.55rem, 1.5vw, 0.8rem);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  .eight {
+    position: absolute;
+    color: #FFD700;
+    font-size: clamp(2rem, 8vw, 4.5rem);
+    font-weight: 900;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    opacity: 1;
+    transition: opacity 0.15s;
+  }
+
+  .eight.hidden { opacity: 0; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.15; }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-8px, -4px) rotate(-3deg); }
+    20% { transform: translate(6px, 6px) rotate(2deg); }
+    30% { transform: translate(-6px, 2px) rotate(-2deg); }
+    40% { transform: translate(4px, -6px) rotate(3deg); }
+    50% { transform: translate(-4px, 4px) rotate(-1deg); }
+    60% { transform: translate(6px, -2px) rotate(2deg); }
+    70% { transform: translate(-2px, 6px) rotate(-3deg); }
+    80% { transform: translate(4px, -4px) rotate(1deg); }
+    90% { transform: translate(-6px, 2px) rotate(-2deg); }
+  }
+
+  .ball.shaking {
+    animation: shake 0.6s ease-in-out;
+  }
+</style>
+</head>
+<body>
+
+<div class="ball" id="ball">
+  <div class="window">
+    <div class="triangle"></div>
+    <span class="eight" id="eight">8</span>
+    <div class="answer" id="answer"></div>
+  </div>
+</div>
+<div class="hint" id="hint">Click to ask</div>
+
+<script>
+  const responses = [
+    "It is certain",
+    "It is decidedly so",
+    "Without a doubt",
+    "Yes definitely",
+    "You may rely on it",
+    "As I see it, yes",
+    "Most likely",
+    "Outlook good",
+    "Yes",
+    "Signs point to yes",
+    "Reply hazy, try again",
+    "Ask again later",
+    "Better not tell you now",
+    "Cannot predict now",
+    "Concentrate and ask again",
+    "Don't count on it",
+    "My reply is no",
+    "My sources say no",
+    "Outlook not so good",
+    "Very doubtful"
+  ];
+
+  const ball = document.getElementById('ball');
+  const answer = document.getElementById('answer');
+  const eight = document.getElementById('eight');
+  const hint = document.getElementById('hint');
+  let isShaking = false;
+  let lastIndex = -1;
+
+  function shake() {
+    if (isShaking) return;
+    isShaking = true;
+
+    hint.style.display = 'none';
+    answer.className = 'answer hidden';
+    eight.className = 'eight';
+
+    void ball.offsetWidth;
+    ball.classList.add('shaking');
+
+    setTimeout(() => {
+      eight.className = 'eight hidden';
+
+      let idx;
+      do { idx = Math.floor(Math.random() * responses.length); }
+      while (idx === lastIndex && responses.length > 1);
+      lastIndex = idx;
+
+      answer.textContent = responses[idx];
+      answer.className = 'answer visible';
+    }, 500);
+
+    setTimeout(() => {
+      ball.classList.remove('shaking');
+      isShaking = false;
+    }, 650);
+  }
+
+  document.addEventListener('click', shake);
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    shake();
+  });
+</script>
+
+</body>
+</html>
